@@ -6,8 +6,9 @@
 
 - FL-01：仓库骨架初始化，已完成。
 - FL-02：核心 crate 提取与业务剥离，已完成开发和本地验收。
-- 当前功能分支：`feature/flovo-01-core-extract`，基于 `dev` 的 `3889ce3`。
+- 当前功能分支：`feature/flovo-02-repo-init`，基于 `dev` 的 `7d8f892`。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
+- FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
 
 ## Workspace 结构
 
@@ -95,6 +96,45 @@ cargo run -p flovo-core --example agent_dialog --features context-sync
 ```
 
 预期输出包含流式回答、`outbound` 消息和写入 `user:user-demo:session:session-demo` 的 mock 上下文。
+
+## FL-03 运行与 CI
+
+README 快速开始使用以下命令运行两个已存在的示例：
+
+```bash
+cargo run -p flovo-core --example data_pipeline
+cargo run -p flovo-core --example agent_dialog --features context-sync
+```
+
+`data_pipeline` 预期输出包含：
+
+```text
+[priority] {"priority":"high","processed":true,"record_id":"record-001","value":42}
+```
+
+GitHub Actions 使用 `dtolnay/rust-toolchain@stable`，在一个 Ubuntu job 中按四个
+独立门禁执行：`cargo fmt --check`、`cargo clippy --workspace --all-targets -- -D
+warnings`、`cargo test --workspace`、`cargo doc --no-deps`。CI 不包含本机 linker
+变通、缓存、矩阵或额外合规工具。
+
+FL-03 本地验收结果：
+
+- `cargo fmt --check`：通过。
+- `cargo clippy --workspace --all-targets -- -D warnings`：通过。
+- `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/cc cargo test --workspace`：98 项通过。
+- `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/cc cargo test --workspace --features context-sync`：111 项通过。
+- `cargo doc --no-deps`：通过。
+
+## FL-03 合规扫描记录
+
+以下扫描在 2026-08-29 完成；`.git` 和 `target` 目录均排除：
+
+1. `git ls-files | grep -E '\.env|\.pem|\.key'`；`grep -RInE 'api_key|apikey|token|secret' --include='*.rs' --include='*.toml' --include='*.md' crates/ .github/ | grep -ivE 'context|token_bus|session_token|jwt'`：通过，无文件名或敏感值残留。
+2. `absolute_path_prefix="$(printf '/%s/' home)"; grep -RIn "${absolute_path_prefix}" --include='*.rs' --include='*.toml' --include='*.md' --include='*.yml' --exclude-dir=.git --exclude-dir=target .`：通过，无本机绝对路径残留。
+3. `grep -RInE '127\.0\.0\.1|localhost|\.lan|\.local|internal' --include='*.rs' --include='*.toml' --include='*.yml' --exclude-dir=.git --exclude-dir=target .`：仅发现 WS 测试的 `127.0.0.1:0` 临时端口绑定，属合法测试用法。
+4. `grep -RInE 'tts_node|llm_node|glm|xfyun|pbs|audio_node|vision_node|communication_card|component_sender|batch_component|group_summary|inter_set' --include='*.rs' --include='*.toml' --exclude-dir=.git --exclude-dir=target crates/`：通过，`crates/` 无匹配。
+5. `grep -RInE 'tonic|prost|\.proto' --include='*.toml' --include='*.rs' --exclude-dir=.git --exclude-dir=target crates/`：通过，`crates/` 无匹配。
+6. `rg -n -i 'fitness|workout|健身' crates/*/examples crates/*/tests` 与 `rg -n 'user_id|session_id' crates/*/examples crates/*/tests`：通过，无健身业务样例，仅保留 `user-demo`、`session-demo` 等通用占位值。
 
 ## 验证结果
 
