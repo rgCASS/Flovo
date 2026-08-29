@@ -36,7 +36,7 @@ Run the same checks used by GitHub Actions:
 
 ```bash
 cargo fmt --check
-cargo clippy --workspace -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo doc --no-deps
 ```
