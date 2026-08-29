@@ -1,0 +1,19 @@
+# Environment and secret files
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+
+# Logs and Rust build artifacts
+logs/
+*.log
+target/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+
+# Local task metadata
+.task_prompt/
