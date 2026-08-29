@@ -17,3 +17,4 @@ target/
 
 # Local task metadata
 .task_prompt/
+.spec-workflow/
