@@ -43,7 +43,7 @@ rg -F "Flovo — a JSON-driven async streaming workflow engine in Rust" README.m
 - `git check-ignore` 为所有列出的本地文件打印匹配路径。
 - `rg` 返回 README 中的项目定位句。
 
-FL-01 本地文件检查结果：上述忽略规则、许可证全文和 README 定位句已通过静态检查；远端分支与提交同步状态需在完成 GitHub 推送后复核。
+FL-01 执行结果（2026-08-29）：上述忽略规则、许可证全文和 README 定位句均已通过静态检查；初始提交 `chore: init flovo repository`（d2fdaed）已推送到 `origin/main`，`dev` 分支已从 main 创建并推送（`git push -u origin dev`）。`git branch -r` 显示 `origin/main` 与 `origin/dev`，本地 main/dev 指向同一 commit（d2fdaed）且与远端同步，`git status` 无 ahead/behind。FL-01 全部验收项通过。
 
 ## 异常处理
 
