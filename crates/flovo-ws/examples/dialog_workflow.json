@@ -1,0 +1,199 @@
+{
+  "agent_dialog": {
+    "start_node": "receive",
+    "input_parameters": {},
+    "nodes": [
+      {
+        "id": 1,
+        "node_type": "send_recv_node",
+        "node_name": "receive",
+        "input_map": {},
+        "choice_map": {
+          "default": "extract_question"
+        },
+        "attrs": {
+          "mode": "recv"
+        }
+      },
+      {
+        "id": 2,
+        "node_type": "transform_node",
+        "node_name": "extract_question",
+        "input_map": {
+          "input": "receive.output"
+        },
+        "choice_map": {
+          "default": "question_check"
+        },
+        "attrs": {
+          "transform_type": "extract_field",
+          "field_path": "question"
+        }
+      },
+      {
+        "id": 3,
+        "node_type": "condition_node",
+        "node_name": "question_check",
+        "input_map": {
+          "input": "extract_question.result"
+        },
+        "choice_map": {
+          "true_choice": "fallback_wrap",
+          "false_choice": "model_first"
+        },
+        "attrs": {
+          "condition_type": "equals",
+          "compare_value": ""
+        }
+      },
+      {
+        "id": 4,
+        "node_type": "transform_node",
+        "node_name": "model_first",
+        "input_map": {
+          "input": "extract_question.result"
+        },
+        "choice_map": {
+          "default": "stream_chunk1"
+        },
+        "attrs": {
+          "transform_type": "to_upper"
+        }
+      },
+      {
+        "id": 5,
+        "node_type": "send_recv_node",
+        "node_name": "stream_chunk1",
+        "input_map": {
+          "input": "model_first.result"
+        },
+        "choice_map": {
+          "default": "chunk2_wrap"
+        },
+        "attrs": {
+          "mode": "send"
+        }
+      },
+      {
+        "id": 6,
+        "node_type": "transform_node",
+        "node_name": "chunk2_wrap",
+        "input_map": {
+          "input": "stream_chunk1.output"
+        },
+        "choice_map": {
+          "default": "chunk2_add"
+        },
+        "attrs": {
+          "transform_type": "wrap",
+          "wrap_key": "answer"
+        }
+      },
+      {
+        "id": 7,
+        "node_type": "transform_node",
+        "node_name": "chunk2_add",
+        "input_map": {
+          "input": "chunk2_wrap.result"
+        },
+        "choice_map": {
+          "default": "chunk2_text"
+        },
+        "attrs": {
+          "transform_type": "add_field",
+          "field_name": "chunk",
+          "field_value": "[mock complete]"
+        }
+      },
+      {
+        "id": 8,
+        "node_type": "transform_node",
+        "node_name": "chunk2_text",
+        "input_map": {
+          "input": "chunk2_add.result"
+        },
+        "choice_map": {
+          "default": "stream_chunk2"
+        },
+        "attrs": {
+          "transform_type": "extract_field",
+          "field_path": "chunk"
+        }
+      },
+      {
+        "id": 9,
+        "node_type": "send_recv_node",
+        "node_name": "stream_chunk2",
+        "input_map": {
+          "input": "chunk2_text.result"
+        },
+        "choice_map": {
+          "default": "finish"
+        },
+        "attrs": {
+          "mode": "send"
+        }
+      },
+      {
+        "id": 10,
+        "node_type": "transform_node",
+        "node_name": "fallback_wrap",
+        "input_map": {
+          "input": "extract_question.result"
+        },
+        "choice_map": {
+          "default": "fallback_add"
+        },
+        "attrs": {
+          "transform_type": "wrap",
+          "wrap_key": "question"
+        }
+      },
+      {
+        "id": 11,
+        "node_type": "transform_node",
+        "node_name": "fallback_add",
+        "input_map": {
+          "input": "fallback_wrap.result"
+        },
+        "choice_map": {
+          "default": "fallback_text"
+        },
+        "attrs": {
+          "transform_type": "add_field",
+          "field_name": "message",
+          "field_value": "[fallback] no question provided"
+        }
+      },
+      {
+        "id": 12,
+        "node_type": "transform_node",
+        "node_name": "fallback_text",
+        "input_map": {
+          "input": "fallback_add.result"
+        },
+        "choice_map": {
+          "default": "fallback"
+        },
+        "attrs": {
+          "transform_type": "extract_field",
+          "field_path": "message"
+        }
+      },
+      {
+        "id": 13,
+        "node_type": "send_recv_node",
+        "node_name": "fallback",
+        "input_map": {
+          "input": "fallback_text.result"
+        },
+        "choice_map": {
+          "default": "finish"
+        },
+        "attrs": {
+          "mode": "send"
+        }
+      }
+    ]
+  }
+}

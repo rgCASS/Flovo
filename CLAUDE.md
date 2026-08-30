@@ -120,6 +120,26 @@ cargo run -p flovo-core --example agent_dialog --features context-sync
 
 预期输出包含流式回答、`outbound` 消息和写入 `user:user-demo:session:session-demo` 的 mock 上下文。
 
+## R021-2 Flovo WebSocket 联调示例
+
+`crates/flovo-ws/examples/server.rs` 从 JSON 加载工作流并启动通用 WebSocket
+服务器；`dialog_workflow.json` 提供 Casevo 联调使用的 `agent_dialog` 工作流。
+由于 `WsServer` 只注册内置节点，示例通过 `transform_node` 与多个
+`send_recv_node` 组合模拟 LLM 分块回答，不依赖自定义模型节点。
+
+从仓库根目录启动默认的 8090 端口：
+
+```bash
+cargo run -p flovo-ws --example server -- \
+  --config crates/flovo-ws/examples/dialog_workflow.json \
+  --port 8090
+```
+
+客户端连接 `ws://127.0.0.1:8090/agent_dialog`，按
+`connect_ok -> init_report -> init_ok -> send_input -> output -> workflow_finished`
+完成交互。非空 `question` 会收到至少两个 `output` 信封，空字符串会收到一个
+`[fallback] no question provided` 兜底信封。
+
 ## FL-03 运行与 CI
 
 README 快速开始使用以下命令运行两个已存在的示例：
