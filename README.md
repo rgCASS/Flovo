@@ -181,3 +181,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for branch, commit, and verification
 conventions. Flovo is licensed under [Apache-2.0](LICENSE).
 
 Copyright rgCASS.
+
+[![GitHub Pages](https://img.shields.io/badge/docs-GitHub%20Pages-dea584)](https://rgcass.github.io/Flovo/)

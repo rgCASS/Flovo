@@ -9,6 +9,7 @@
 - 当前功能分支：`feature/flovo-02-repo-init`，基于 `dev` 的 `7d8f892`。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
 - FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
+- FL-05：项目介绍静态页（docs/ 中英双语）已完成开发、两轮 Review 通过，已合并入 `dev` 并推送（merge 5ab5945，含 feat afa82b1 + fix b9a82aa）。待姜神验收后合 main（Pages 生效）。
 
 ## Workspace 结构
 
@@ -32,6 +33,28 @@
 │       └── tests
 └── CLAUDE.md
 ```
+
+## FL-05 项目介绍网页
+
+GitHub Pages 单页位于 `docs/`，不引入构建链或外部依赖：
+
+```text
+docs/
+├── index.html
+├── css/style.css
+└── js/{main.js,i18n-zh.js,i18n-en.js}
+```
+
+本地预览：
+
+```bash
+cd docs && python3 -m http.server 8000
+```
+
+页面通过 `data-i18n` 标记与双语言包切换文案，语言优先级为 `?lang=zh|en`、
+`localStorage[flovo-lang]`、浏览器语言检测（`zh*` 使用中文，其余英文）。GitHub
+Pages 配置为 `main` 分支的 `/docs` 目录。若浏览器禁用 `localStorage`，页面仍可切换，
+但刷新后回退到 URL 参数或浏览器默认语言；非法 `lang` 参数回退到英文。
 
 - `flovo-core`：工作流调度、`WorkflowBuilder`、`WorkFlow`、Step/Stream 参数总线、节点抽象、配置加载与校验、Prompt 抽象、通用模型接口和内置通用节点。
 - `flovo-ws`：WebSocket 握手、端点路由、连接限流、每连接独立工作流、消息读写、批量 JSON 封包和通用资源协议。
