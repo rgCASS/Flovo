@@ -12,7 +12,7 @@
   // Replace every marked node and update the document language and toggle state.
   function applyLanguage(next){
     lang=packs[next]?next:'en';document.documentElement.lang=lang;
-    document.querySelectorAll('[data-i18n]').forEach(node=>{const value=getValue(packs[lang],node.dataset.i18n);if(typeof value==='string')node.textContent=value;});
+    document.querySelectorAll('[data-i18n]').forEach(node=>{const value=getValue(packs[lang],node.dataset.i18n);if(typeof value==='string'){if(node.dataset.i18nHtml==='true')node.innerHTML=value;else node.textContent=value;}});
     document.querySelectorAll('[data-lang]').forEach(node=>node.classList.toggle('active',node.dataset.lang===lang));safeStorageSet(lang);
   }
   // Apply a dependency-free, intentionally small highlighter to JSON and Rust blocks.
@@ -20,7 +20,10 @@
     const escaped=code.textContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const isJson=code.classList.contains('language-json');
     const pattern=isJson?/("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|(\b(?:true|false|null)\b)|(-?\b\d+(?:\.\d+)?\b)/g:/(\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b(?:fn|struct|impl|trait|async|let|self|use|pub|return)\b)/g;
-    code.innerHTML=escaped.replace(pattern,(match,key,string,primitive)=>{if(isJson&&key)return '<span class="token-key">'+match+'</span>';if(isJson&&primitive)return '<span class="token-number">'+match+'</span>';if(!isJson&&key)return '<span class="token-comment">'+match+'</span>';if(!isJson&&string)return '<span class="token-string">'+match+'</span>';return match;});
+    // Keep JSON token mapping intact; Rust keywords use the third capture group.
+    code.innerHTML=escaped.replace(pattern,isJson
+      ? (match,key,string,primitive)=>{if(key)return '<span class="token-key">'+match+'</span>';if(primitive)return '<span class="token-number">'+match+'</span>';return match;}
+      : (match,comment,string,keyword)=>{if(comment)return '<span class="token-comment">'+match+'</span>';if(string)return '<span class="token-string">'+match+'</span>';if(keyword)return '<span class="token-key">'+match+'</span>';return match;});
   }
   document.addEventListener('DOMContentLoaded',()=>{
     applyLanguage(lang);document.querySelectorAll('code[class*="language-"]').forEach(highlight);
