@@ -9,7 +9,7 @@
 - 当前功能分支：`feature/flovo-02-repo-init`，基于 `dev` 的 `7d8f892`。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
 - FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
-- FL-05：项目介绍静态页已完成开发，当前分支为 `feature/flovo-05-intro-site`，待本地验收与提交。
+- FL-05：项目介绍静态页（docs/ 中英双语）已完成开发、两轮 Review 通过，已合并入 `dev` 并推送（merge 5ab5945，含 feat afa82b1 + fix b9a82aa）。待姜神验收后合 main（Pages 生效）。
 
 ## Workspace 结构
 
