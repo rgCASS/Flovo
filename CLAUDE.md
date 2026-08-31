@@ -6,8 +6,9 @@
 
 - FL-01：仓库骨架初始化，已完成。
 - FL-02：核心 crate 提取与业务剥离，已完成开发和本地验收。
-- 当前功能分支：`feature/flovo-07-llm-node`。
+- 当前功能分支：`feature/flovo-08-context-input`。
 - R022：真实 LLM 节点与 OpenAI 兼容接入已完成开发。
+- R023：Flovo WebSocket 侧已支持将 `send_input` 信封中的 `info.context` 顶层字段合并到 workflow context；节点可通过 `context.<field>` 读取。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
 - FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
 - FL-05：项目介绍静态页（docs/ 中英双语）已完成开发、两轮 Review 通过，已合并入 `dev` 并推送（merge 5ab5945，含 feat afa82b1 + fix b9a82aa）。待姜神验收后合 main（Pages 生效）。
@@ -165,6 +166,26 @@ R022 异常处理：
 - SSE 坏行：逐行跳过并继续处理，流结束时始终回调 `Finish` chunk。
 - outbound 接收端关闭：流式节点记录并返回 `outbound channel closed` 错误。
 - 未配置密钥：服务不构造客户端，`llm_call` 优雅降级，不阻塞示例启动。
+
+## R023 上下文桥接示例
+
+发送 `send_input` 时可携带上下文对象：
+
+```json
+{
+  "type": "service",
+  "workflow": "context_echo",
+  "cmd": "send_input",
+  "info": {
+    "context": {"user_name": "alice"},
+    "question": "hi"
+  }
+}
+```
+
+工作流节点在 `input_map` 中配置 `"context.user_name"` 即可读取该字段；上下文合并发生在 `user_id/session_id` 写入之后，因此同名字段由 `context` 值覆盖。
+
+R023 异常处理：`info.context` 仅在类型为 JSON object 时逐字段合并；字符串、数组或缺失字段会被忽略，工作流继续按原有逻辑执行。
 
 ## FL-03 运行与 CI
 
