@@ -4,6 +4,7 @@
 
 pub mod batch;
 pub mod batch_ack;
+pub mod llm;
 mod server;
 
 pub use batch::{pack_batch, unpack_batch, DEFAULT_MAX_BATCH_SIZE};

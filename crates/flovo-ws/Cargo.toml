@@ -12,6 +12,7 @@ context-sync = ["flovo-core/context-sync"]
 
 [dependencies]
 flovo-core = { path = "../flovo-core" }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 futures-util.workspace = true
 serde.workspace = true
 serde_json.workspace = true
