@@ -428,7 +428,7 @@ impl WsServer {
                                 if let Some(value) = envelope.info.get("session_id") {
                                     workflow.set_context("session_id", value.clone());
                                 }
-                                // 将 Casevo 传入的上下文对象合并进 workflow context，
+                                // 将 send_input 携带的上下文对象合并进 workflow context，
                                 // 节点可用 input_map 的 "context.<field>" 语法读取。
                                 if let Some(context) = envelope.info.get("context") {
                                     if let Value::Object(fields) = context {
