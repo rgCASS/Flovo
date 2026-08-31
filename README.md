@@ -102,6 +102,7 @@ does not add business-service clients or protocol-specific domain nodes.
 | `while_node` | Repeat while a condition remains true | loop condition and iteration limits |
 | `send_recv_node` | Receive or send workflow messages | `mode`, message mapping |
 | `send_cmd_recv` | Command-oriented send/receive alias | command and message mapping |
+| `llm_call` | Call an injected LLM or use mock fallback | `stream`, `system_prompt`, `mock_output` |
 | `schema_validator` | Validate JSON against a schema | `schema` |
 | `context_fetch_node` | Fetch a field from injected context storage | `context_client`, field mapping; requires `context-sync` |
 
@@ -168,6 +169,30 @@ application supplies a `ContextOps` implementation through
 `ContextSyncManager`. Fetch failures are warnings, while push failures are
 returned to the caller. Without an injected implementation, the core remains a
 normal local workflow engine.
+
+## Real LLM Configuration
+
+`flovo-ws` provides an OpenAI-compatible `LlmApi` implementation. Configure it
+through environment variables before starting the example server:
+
+| Variable | Required | Default |
+| --- | --- | --- |
+| `FLOVO_LLM_BASE_URL` | No | `https://api.openai.com/v1` |
+| `FLOVO_LLM_API_KEY` | Yes | — |
+| `FLOVO_LLM_MODEL` | No | `gpt-4o-mini` |
+
+The `agent_dialog` workflow uses the built-in `llm_call` node. Start it with:
+
+```bash
+export FLOVO_LLM_API_KEY=your-api-key
+cargo run -p flovo-ws --example server -- \
+  --config crates/flovo-ws/examples/dialog_workflow.json --port 8090
+```
+
+With a key configured, non-empty questions are sent to the configured
+`/chat/completions` endpoint. If the key is missing or empty, the server skips
+LLM injection and the workflow remains runnable using the fallback output
+`[mock] {prompt}`.
 
 The mock integration is runnable with:
 

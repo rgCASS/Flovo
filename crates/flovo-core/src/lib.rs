@@ -18,6 +18,7 @@ pub mod parameter_bus;
 pub mod prompt;
 pub mod workflow;
 
+pub use async_trait::async_trait;
 pub use builder::WorkflowBuilder;
 #[cfg(feature = "context-sync")]
 pub use context_sync::{

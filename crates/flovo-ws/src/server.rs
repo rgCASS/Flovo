@@ -1,10 +1,11 @@
 //! 通用 WebSocket 工作流服务器。
 
+use crate::llm::OpenaiCompatLlm;
 use flovo_core::config::WorkflowConfig;
 #[cfg(feature = "context-sync")]
 use flovo_core::context_sync::{ContextOps, ContextSyncManager};
 use flovo_core::nodes::{register_builtin_nodes, OutboundSender};
-use flovo_core::{Result, WorkFlow, WorkflowBuilder, WorkflowError};
+use flovo_core::{LlmApi, Result, WorkFlow, WorkflowBuilder, WorkflowError};
 use futures_util::{SinkExt, Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -321,7 +322,11 @@ impl WsServer {
             builder =
                 builder.with_context_sync(ContextSyncManager::new_with_client(client, sync_config));
         }
-        builder.build(endpoint)
+        let workflow = builder.build(endpoint)?;
+        if let Some(llm) = OpenaiCompatLlm::from_env() {
+            workflow.set_context_object("llm", Arc::new(llm) as Arc<dyn LlmApi>);
+        }
+        Ok(workflow)
     }
 
     #[cfg(not(feature = "context-sync"))]
@@ -336,7 +341,11 @@ impl WsServer {
         register_builtin_nodes(&registry);
         let mut selected = HashMap::new();
         selected.insert(endpoint.to_string(), config);
-        WorkflowBuilder::new(registry, selected).build(endpoint)
+        let workflow = WorkflowBuilder::new(registry, selected).build(endpoint)?;
+        if let Some(llm) = OpenaiCompatLlm::from_env() {
+            workflow.set_context_object("llm", Arc::new(llm) as Arc<dyn LlmApi>);
+        }
+        Ok(workflow)
     }
 
     async fn process_connection(

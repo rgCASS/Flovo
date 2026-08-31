@@ -3,6 +3,7 @@
 pub mod condition_node;
 #[cfg(feature = "context-sync")]
 pub mod context_fetch_node;
+pub mod llm_call_node;
 pub mod print_node;
 pub mod schema_validator;
 pub mod send_recv_node;
@@ -12,6 +13,7 @@ pub mod while_node;
 pub use condition_node::ConditionNode;
 #[cfg(feature = "context-sync")]
 pub use context_fetch_node::ContextFetchNode;
+pub use llm_call_node::LlmCallNode;
 pub use print_node::PrintNode;
 pub use schema_validator::SchemaValidatorNode;
 pub use send_recv_node::{OutboundSender, SendRecvNode};
@@ -40,6 +42,9 @@ pub fn register_builtin_nodes(registry: &Arc<NodeRegistry>) {
     });
     registry.register("send_cmd_recv", |config, ctx| {
         Ok(Arc::new(SendRecvNode::new(config, ctx)?))
+    });
+    registry.register("llm_call", |config, ctx| {
+        Ok(Arc::new(LlmCallNode::new(config, ctx)?))
     });
     registry.register("schema_validator", |config, ctx| {
         Ok(Arc::new(SchemaValidatorNode::new(config, ctx)?))
