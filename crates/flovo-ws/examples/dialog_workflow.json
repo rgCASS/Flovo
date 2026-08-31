@@ -39,7 +39,7 @@
         },
         "choice_map": {
           "true_choice": "fallback_wrap",
-          "false_choice": "model_first"
+          "false_choice": "llm_call"
         },
         "attrs": {
           "condition_type": "equals",
@@ -48,16 +48,16 @@
       },
       {
         "id": 4,
-        "node_type": "transform_node",
-        "node_name": "model_first",
+        "node_type": "llm_call",
+        "node_name": "llm_call",
         "input_map": {
-          "input": "extract_question.result"
+          "prompt": "extract_question.result"
         },
         "choice_map": {
           "default": "stream_chunk1"
         },
         "attrs": {
-          "transform_type": "to_upper"
+          "stream": false
         }
       },
       {
@@ -65,7 +65,7 @@
         "node_type": "send_recv_node",
         "node_name": "stream_chunk1",
         "input_map": {
-          "input": "model_first.result"
+          "input": "llm_call.result"
         },
         "choice_map": {
           "default": "chunk2_wrap"

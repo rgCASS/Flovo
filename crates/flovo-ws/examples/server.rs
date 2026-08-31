@@ -62,7 +62,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
     workflow_names.sort();
     let address = format!("127.0.0.1:{}", options.port);
 
-    // WsServer 只注册内置节点；配置通过转换和发送节点组合模拟 LLM 分块输出。
+    // WsServer 注册 llm_call 等内置节点；密钥缺失时节点自动使用 mock 输出。
     let server = WsServer::new_with_config(address.clone(), configs, WsServerConfig::default())?;
     println!("Listening on ws://{address}/<workflow>");
     println!("Loaded workflows: {}", workflow_names.join(", "));

@@ -6,7 +6,8 @@
 
 - FL-01：仓库骨架初始化，已完成。
 - FL-02：核心 crate 提取与业务剥离，已完成开发和本地验收。
-- 当前功能分支：`feature/flovo-02-repo-init`，基于 `dev` 的 `7d8f892`。
+- 当前功能分支：`feature/flovo-07-llm-node`。
+- R022：真实 LLM 节点与 OpenAI 兼容接入已完成开发。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
 - FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
 - FL-05：项目介绍静态页（docs/ 中英双语）已完成开发、两轮 Review 通过，已合并入 `dev` 并推送（merge 5ab5945，含 feat afa82b1 + fix b9a82aa）。待姜神验收后合 main（Pages 生效）。
@@ -84,6 +85,10 @@ cargo build --workspace --features flovo-ws/context-sync
 ## 依赖安装
 
 项目只需要 Rust stable 工具链。WebSocket 使用纯 Rust 实现，无 OpenSSL、gRPC、proto 编译器或外部服务 SDK 要求。
+R022 在 `flovo-ws` 新增 `reqwest`（启用 `json`、`stream`、`rustls-tls`）
+用于 OpenAI 兼容 HTTP/SSE 调用；单测使用 tokio `TcpListener` 轻量 mock，
+不引入额外测试依赖。首次构建会编译 rustls/ring，Linux 本机测试按任务要求
+设置 `RUSTFLAGS="-C linker=/usr/bin/gcc"`。
 
 ```bash
 rustup toolchain install stable
@@ -124,8 +129,8 @@ cargo run -p flovo-core --example agent_dialog --features context-sync
 
 `crates/flovo-ws/examples/server.rs` 从 JSON 加载工作流并启动通用 WebSocket
 服务器；`dialog_workflow.json` 提供 Casevo 联调使用的 `agent_dialog` 工作流。
-由于 `WsServer` 只注册内置节点，示例通过 `transform_node` 与多个
-`send_recv_node` 组合模拟 LLM 分块回答，不依赖自定义模型节点。
+由于 `WsServer` 只注册内置节点，示例通过内置 `llm_call` 与多个
+`send_recv_node` 连接；未配置密钥时自动使用 `[mock] {prompt}` 降级输出。
 
 从仓库根目录启动默认的 8090 端口：
 
@@ -139,6 +144,27 @@ cargo run -p flovo-ws --example server -- \
 `connect_ok -> init_report -> init_ok -> send_input -> output -> workflow_finished`
 完成交互。非空 `question` 会收到至少两个 `output` 信封，空字符串会收到一个
 `[fallback] no question provided` 兜底信封。
+
+R022 真实 LLM 运行示例：
+
+```bash
+export FLOVO_LLM_BASE_URL=https://api.openai.com/v1
+export FLOVO_LLM_API_KEY=your-api-key
+export FLOVO_LLM_MODEL=gpt-4o-mini
+cargo run -p flovo-ws --example server -- \
+  --config crates/flovo-ws/examples/dialog_workflow.json --port 8090
+```
+
+发送 `send_input`（例如 `{"question":"Explain Rust ownership"}`）后，
+`llm_call` 会请求兼容接口并将回答写入后续节点；缺少或为空的
+`FLOVO_LLM_API_KEY` 时跳过注入，工作流仍输出 mock 文本。
+
+R022 异常处理：
+
+- 网络、HTTP 非 2xx、响应解析失败：映射为 `WorkflowError::Other`，错误片段会截断且脱敏 API key。
+- SSE 坏行：逐行跳过并继续处理，流结束时始终回调 `Finish` chunk。
+- outbound 接收端关闭：流式节点记录并返回 `outbound channel closed` 错误。
+- 未配置密钥：服务不构造客户端，`llm_call` 优雅降级，不阻塞示例启动。
 
 ## FL-03 运行与 CI
 
