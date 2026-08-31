@@ -4,6 +4,7 @@
 use crate::error::{Result, WorkflowError};
 use crate::node::{BaseNode, NodeConfig, NodeContext, NodeHelper, NodeType};
 use crate::parameter_bus::ParameterType;
+use crate::workflow::WorkFlow;
 use async_trait::async_trait;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -65,7 +66,7 @@ impl TransformNode {
     /// - transform_type: 转换类型（add_field, extract_field, concat, to_upper, to_lower, wrap）
     /// - field_name: 字段名称（用于 add_field 和 extract_field）
     /// - field_path: 点号字段路径（用于 extract_field，优先级高于 field_name）
-    /// - fields: 点号字段路径数组（用于 concat，缺失字段会被跳过）
+    /// - fields: 字段路径数组（用于 concat；支持 `input`、`context.<field>` 和对象字段路径，缺失字段会被跳过）
     /// - separator: 字段拼接分隔符（用于 concat，默认为空字符串）
     /// - field_value: 字段值（用于 add_field）
     /// - wrap_key: 包装键名（用于 wrap）
@@ -96,7 +97,16 @@ impl TransformNode {
     }
 
     /// 执行转换
+    #[allow(dead_code)]
     fn transform(&self, input: Value) -> Result<Value> {
+        self.transform_with_context(input, None)
+    }
+
+    /// 执行转换，并在 concat 场景下按需读取 workflow context。
+    ///
+    /// `transform` 保持无上下文的纯函数入口，供现有调用方和单测继续使用；
+    /// 运行时由 `run` 传入工作流引用，以支持 `input` 与 `context.<field>` 字段。
+    fn transform_with_context(&self, input: Value, workflow: Option<&WorkFlow>) -> Result<Value> {
         let transform_type_str = self
             .config
             .attrs
@@ -198,11 +208,31 @@ impl TransformNode {
                     })
                     .transpose()?
                     .unwrap_or("");
-                let input = parse_json_input(input, "concat")?;
+                // `input` 必须保留原始值：字符串问题不应被当作 JSON 重新解析，
+                // 对象/数组则在拼接时按 JSON 文本格式化。只有需要读取对象路径时才解析字符串输入，
+                // 从而兼容旧的 JSON 字符串输入行为，同时允许 concat 直接引用普通文本。
+                let parsed_input = if field_paths
+                    .iter()
+                    .any(|field_path| *field_path != "input" && !field_path.starts_with("context."))
+                {
+                    Some(parse_json_input(input.clone(), "concat")?)
+                } else {
+                    None
+                };
 
                 let values = field_paths
                     .iter()
-                    .filter_map(|field_path| extract_path(&input, field_path).ok())
+                    .filter_map(|field_path| {
+                        if *field_path == "input" {
+                            return Some(input.clone());
+                        }
+                        if let Some(context_key) = field_path.strip_prefix("context.") {
+                            return workflow.and_then(|workflow| workflow.get_context(context_key));
+                        }
+                        parsed_input
+                            .as_ref()
+                            .and_then(|parsed| extract_path(parsed, field_path).ok())
+                    })
                     .map(|value| match value {
                         Value::String(text) => text,
                         other => other.to_string(),
@@ -303,7 +333,8 @@ impl BaseNode for TransformNode {
             input
         );
 
-        let result = self.transform(input)?;
+        let workflow = ctx.get_workflow()?;
+        let result = self.transform_with_context(input, Some(&workflow))?;
 
         if let Some(context_key) = self
             .config
@@ -313,7 +344,6 @@ impl BaseNode for TransformNode {
             .map(str::trim)
             .filter(|v| !v.is_empty())
         {
-            let workflow = ctx.get_workflow()?;
             workflow.set_context(context_key, result.clone());
         }
 
@@ -330,7 +360,6 @@ impl BaseNode for TransformNode {
                     self.config.attrs.get("field_name").and_then(|v| v.as_str()),
                     self.config.attrs.get("field_value"),
                 ) {
-                    let workflow = ctx.get_workflow()?;
                     workflow.set_context(field_name, field_value.clone());
                 }
             }
@@ -634,5 +663,61 @@ mod tests {
             node.transform(Value::String("not-json".to_string())),
             Err(WorkflowError::ConfigError(_))
         ));
+    }
+
+    #[test]
+    fn test_concat_input_field_returns_original_string() {
+        let node = transform_node("concat", &[("fields", serde_json::json!(["input"]))]);
+
+        let result = node
+            .transform(Value::String("原始问题".to_string()))
+            .unwrap();
+
+        assert_eq!(result, Value::String("原始问题".to_string()));
+    }
+
+    #[test]
+    fn test_concat_input_and_context_fields() {
+        let node = transform_node(
+            "concat",
+            &[
+                ("fields", serde_json::json!(["input", "context.user_name"])),
+                ("separator", serde_json::json!(" ")),
+            ],
+        );
+        let workflow = crate::workflow::WorkFlow::new("concat_context".to_string());
+        workflow.set_context("user_name", Value::String("alice".to_string()));
+
+        let result = node
+            .transform_with_context(Value::String("hello".to_string()), Some(&workflow))
+            .unwrap();
+
+        assert_eq!(result, Value::String("hello alice".to_string()));
+    }
+
+    #[test]
+    fn test_concat_missing_context_field_is_skipped() {
+        let node = transform_node(
+            "concat",
+            &[
+                (
+                    "fields",
+                    serde_json::json!(["input", "context.user_name", "context.tone"]),
+                ),
+                ("separator", serde_json::json!(" ")),
+            ],
+        );
+        let workflow = crate::workflow::WorkFlow::new("concat_missing_context".to_string());
+
+        assert_eq!(
+            node.transform_with_context(Value::String("hello".to_string()), Some(&workflow))
+                .unwrap(),
+            Value::String("hello".to_string())
+        );
+        assert_eq!(
+            node.transform_with_context(Value::String("hello".to_string()), None)
+                .unwrap(),
+            Value::String("hello".to_string())
+        );
     }
 }

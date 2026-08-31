@@ -430,11 +430,9 @@ impl WsServer {
                                 }
                                 // 将 send_input 携带的上下文对象合并进 workflow context，
                                 // 节点可用 input_map 的 "context.<field>" 语法读取。
-                                if let Some(context) = envelope.info.get("context") {
-                                    if let Value::Object(fields) = context {
-                                        for (key, value) in fields {
-                                            workflow.set_context(key, value.clone());
-                                        }
+                                if let Some(Value::Object(fields)) = envelope.info.get("context") {
+                                    for (key, value) in fields {
+                                        workflow.set_context(key, value.clone());
                                     }
                                 }
                                 workflow.add_message(envelope.info).await?;

@@ -39,7 +39,7 @@
         },
         "choice_map": {
           "true_choice": "fallback_wrap",
-          "false_choice": "llm_call"
+          "false_choice": "build_prompt"
         },
         "attrs": {
           "condition_type": "equals",
@@ -48,10 +48,26 @@
       },
       {
         "id": 4,
+        "node_type": "transform_node",
+        "node_name": "build_prompt",
+        "input_map": {
+          "input": "extract_question.result"
+        },
+        "choice_map": {
+          "default": "llm_call"
+        },
+        "attrs": {
+          "transform_type": "concat",
+          "fields": ["input", "context.user_name", "context.tone"],
+          "separator": " "
+        }
+      },
+      {
+        "id": 5,
         "node_type": "llm_call",
         "node_name": "llm_call",
         "input_map": {
-          "prompt": "extract_question.result"
+          "prompt": "build_prompt.result"
         },
         "choice_map": {
           "default": "stream_chunk1"
@@ -61,7 +77,7 @@
         }
       },
       {
-        "id": 5,
+        "id": 6,
         "node_type": "send_recv_node",
         "node_name": "stream_chunk1",
         "input_map": {
@@ -75,7 +91,7 @@
         }
       },
       {
-        "id": 6,
+        "id": 7,
         "node_type": "transform_node",
         "node_name": "chunk2_wrap",
         "input_map": {
@@ -90,7 +106,7 @@
         }
       },
       {
-        "id": 7,
+        "id": 8,
         "node_type": "transform_node",
         "node_name": "chunk2_add",
         "input_map": {
@@ -106,7 +122,7 @@
         }
       },
       {
-        "id": 8,
+        "id": 9,
         "node_type": "transform_node",
         "node_name": "chunk2_text",
         "input_map": {
@@ -121,7 +137,7 @@
         }
       },
       {
-        "id": 9,
+        "id": 10,
         "node_type": "send_recv_node",
         "node_name": "stream_chunk2",
         "input_map": {
@@ -135,7 +151,7 @@
         }
       },
       {
-        "id": 10,
+        "id": 11,
         "node_type": "transform_node",
         "node_name": "fallback_wrap",
         "input_map": {
@@ -150,7 +166,7 @@
         }
       },
       {
-        "id": 11,
+        "id": 12,
         "node_type": "transform_node",
         "node_name": "fallback_add",
         "input_map": {
@@ -166,7 +182,7 @@
         }
       },
       {
-        "id": 12,
+        "id": 13,
         "node_type": "transform_node",
         "node_name": "fallback_text",
         "input_map": {
@@ -181,7 +197,7 @@
         }
       },
       {
-        "id": 13,
+        "id": 14,
         "node_type": "send_recv_node",
         "node_name": "fallback",
         "input_map": {

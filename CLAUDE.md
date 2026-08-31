@@ -6,9 +6,10 @@
 
 - FL-01：仓库骨架初始化，已完成。
 - FL-02：核心 crate 提取与业务剥离，已完成开发和本地验收。
-- 当前功能分支：`feature/flovo-08-context-input`。
+- 当前功能分支：`feature/flovo-09-demo-llm-context`。
 - R022：真实 LLM 节点与 OpenAI 兼容接入已完成开发。
 - R023：Flovo WebSocket 侧已支持将 `send_input` 信封中的 `info.context` 顶层字段合并到 workflow context；节点可通过 `context.<field>` 读取。
+- R024：transform_node concat 增强（三态字段 `input`/`context.<field>`/对象路径）+ dialog_workflow build_prompt 接入，已完成 Code Review（2026-08-31）。评审结论：通过，存在 P1 存量 clippy 问题（`flovo-ws/src/server.rs:434`，R023 引入的双层 `if let` 可合并为 `if let Some(Value::Object(fields)) = envelope.info.get("context")`），需在合并前修复。
 - Rust edition：2021；workspace resolver：2；许可证：Apache-2.0。
 - FL-03：开源仓库门面与合规清理已完成；README、CONTRIBUTING、CHANGELOG 和 GitHub Actions CI 已就绪。
 - FL-05：项目介绍静态页（docs/ 中英双语）已完成开发、两轮 Review 通过，已合并入 `dev` 并推送（merge 5ab5945，含 feat afa82b1 + fix b9a82aa）。待姜神验收后合 main（Pages 生效）。
@@ -186,6 +187,29 @@ R022 异常处理：
 工作流节点在 `input_map` 中配置 `"context.user_name"` 即可读取该字段；上下文合并发生在 `user_id/session_id` 写入之后，因此同名字段由 `context` 值覆盖。
 
 R023 异常处理：`info.context` 仅在类型为 JSON object 时逐字段合并；字符串、数组或缺失字段会被忽略，工作流继续按原有逻辑执行。
+
+## R024 Flovo 侧集成示例升级
+
+当前功能分支：`feature/flovo-09-demo-llm-context`。
+
+`transform_node` 的 `concat` 支持三类字段来源：`"input"` 引用 concat 输入值本身，
+`"context.<field>"` 引用 workflow context 字段，其他值继续按对象点号路径提取。
+示例 `dialog_workflow.json` 新增 `build_prompt` 节点，将问题与上下文画像拼接后传给
+`llm_call`：
+
+```json
+{
+  "fields": ["input", "context.user_name", "context.tone"],
+  "separator": " "
+}
+```
+
+例如输入问题为 `请介绍一下 Rust`，context 为 `{"user_name":"alice","tone":"formal"}`
+时，mock 输出包含 `[mock] 请介绍一下 Rust alice formal`；未提供 context 时，缺失字段会被
+跳过，prompt 退化为问题原文，保持向后兼容。
+
+R024 异常处理：concat 的 context 不存在或字段缺失时跳过该字段；传统对象字段路径缺失时
+同样跳过，所有字段均缺失时返回空字符串。
 
 ## FL-03 运行与 CI
 
