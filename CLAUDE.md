@@ -187,6 +187,29 @@ R022 异常处理：
 
 R023 异常处理：`info.context` 仅在类型为 JSON object 时逐字段合并；字符串、数组或缺失字段会被忽略，工作流继续按原有逻辑执行。
 
+## R024 Flovo 侧集成示例升级
+
+当前功能分支：`feature/flovo-09-demo-llm-context`。
+
+`transform_node` 的 `concat` 支持三类字段来源：`"input"` 引用 concat 输入值本身，
+`"context.<field>"` 引用 workflow context 字段，其他值继续按对象点号路径提取。
+示例 `dialog_workflow.json` 新增 `build_prompt` 节点，将问题与上下文画像拼接后传给
+`llm_call`：
+
+```json
+{
+  "fields": ["input", "context.user_name", "context.tone"],
+  "separator": " "
+}
+```
+
+例如输入问题为 `请介绍一下 Rust`，context 为 `{"user_name":"alice","tone":"formal"}`
+时，mock 输出包含 `[mock] 请介绍一下 Rust alice formal`；未提供 context 时，缺失字段会被
+跳过，prompt 退化为问题原文，保持向后兼容。
+
+R024 异常处理：concat 的 context 不存在或字段缺失时跳过该字段；传统对象字段路径缺失时
+同样跳过，所有字段均缺失时返回空字符串。
+
 ## FL-03 运行与 CI
 
 README 快速开始使用以下命令运行两个已存在的示例：
